@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Filter from "./components/Filter";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
+import phonebookService from "./services/phonebook";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -11,15 +11,29 @@ const App = () => {
   const [searchName, setSearchName] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:3001/persons").then((response) => {
-      setPersons(response.data);
+    phonebookService.getAll().then((response) => {
+      setPersons(response);
     });
   }, []);
 
   const addNumber = (event) => {
     event.preventDefault();
     if (persons.some((person) => person.name === newName)) {
-      alert(`${newName} is already added to phonebook`);
+      if (
+        window.confirm(
+          `${newName} is already added to phonebook, replace the old number with a new one?`
+        )
+      ) {
+        const person = persons.find((person) => person.name === newName);
+        const changedPerson = { ...person, number: newNumber };
+        phonebookService.update(person.id, changedPerson).then((response) => {
+          setPersons(
+            persons.map((person) =>
+              person.id !== response.id ? person : response
+            )
+          );
+        });
+      }
     } else {
       const personObject = {
         name: newName,
@@ -52,7 +66,11 @@ const App = () => {
         handleNumberChange={handleNumberChange}
       />
       <h2>Numbers</h2>
-      <Persons persons={persons} searchName={searchName} />
+      <Persons
+        persons={persons}
+        searchName={searchName}
+        setPersons={setPersons}
+      />
     </div>
   );
 };
